@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quizzy — Fun Quizzes for Kids</title>
+
+<!-- Fonts: Poppins (body) + Fredoka One (logo) -->
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --maxw:920px;
+    --accent1:#ff6b6b; --accent2:#00c2ff;
+    --bg1:#fffafc; --bg2:#e9fbff;
+    --card:#ffffff;
+    --text:#07121a;           /* darker, stylish body text */
+    --muted:#55606a;
+    --ok:#2dbb6a; --bad:#ff5c7c;
+    --radius:12px;
+  }
+  /* dark theme variables */
+  [data-theme="dark"]{
+    --bg1:#07121a; --bg2:#071827;
+    --card:#08131a;
+    --text:#e8f3f5;
+    --muted:#9fb0ba;
+    --accent1:#ff9aa2; --accent2:#6fe6ff;
+  }
+
+  /* reset & base */
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+    background:linear-gradient(135deg,var(--bg1),var(--bg2));
+    color:var(--text);
+    -webkit-font-smoothing:antialiased;
+    padding:18px;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto}
+
+  /* header */
+  .header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+  .logo{font-family:"Fredoka One",sans-serif;font-size:1.45rem;
+        background:linear-gradient(90deg,var(--accent1),var(--accent2));
+        -webkit-background-clip:text;background-clip:text;color:transparent}
+  .subtitle{font-weight:500;color:var(--muted);font-size:.95rem}
+
+  /* theme toggle */
+  .theme{display:flex;align-items:center;gap:10px}
+  .theme button{border:0;background:transparent;cursor:pointer;font-size:1.05rem}
+
+  /* panel */
+  .panel{background:var(--card);border-radius:var(--radius);padding:14px;margin-top:12px;border:1px solid rgba(0,0,0,0.04);box-shadow:0 10px 30px rgba(2,6,23,0.03)}
+  [data-theme="dark"] .panel{border:1px solid rgba(255,255,255,0.04)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:10px}
+  .ch{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fff7fb);text-align:center;cursor:pointer;font-weight:700;border:1px solid rgba(0,0,0,0.04)}
+  [data-theme="dark"] .ch{background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.01))}
+
+  /* quiz area */
+  .quiz-area{display:none;margin-top:14px}
+  .card{background:linear-gradient(180deg,var(--card), rgba(255,255,255,0.02));padding:14px;border-radius:12px;box-shadow:0 12px 28px rgba(10,10,30,0.06)}
+  .qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+  .qtitle{font-weight:700;color:var(--accent2)}
+  .progress{color:var(--muted);font-weight:600}
+  .qtxt{margin-top:12px;font-size:1.05rem;min-height:56px}
+  .options{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+  .opt{padding:10px;border-radius:10px;border:1px solid rgba(0,0,0,0.03);cursor:pointer;font-weight:700;background:var(--card)}
+  .opt:hover{transform:translateY(-3px)}
+  .opt.ok{border-color:var(--ok);background:linear-gradient(180deg,#f1fff4,#ecfff8)}
+  .opt.bad{border-color:var(--bad);background:linear-gradient(180deg,#fff2f4,#fff7f9)}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap}
+  .btn{padding:9px 12px;border-radius:10px;cursor:pointer;border:0;font-weight:800}
+  .primary{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:white}
+  .ghost{background:transparent;border:1px solid rgba(0,0,0,0.06);color:var(--text)}
+  .score{padding:6px 10px;border-radius:999px;border:1px solid rgba(0,0,0,0.03);font-weight:900}
+  .small{color:var(--muted);font-size:.95rem}
+
+  .num-wrap{display:flex;gap:8px;align-items:center}
+  .num-wrap input{padding:8px;border-radius:8px;border:1px solid rgba(0,0,0,0.06);width:120px;font-weight:700}
+
+  .results{display:none;margin-top:12px;text-align:center}
+  .break{margin-top:8px;text-align:left}
+  .break .item{background:var(--card);padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.03);margin-bottom:6px}
+  [data-theme="dark"] .break .item{border:1px solid rgba(255,255,255,0.03)}
+
+  footer{margin-top:16px;color:var(--muted);font-size:.92rem;text-align:center}
+
+  @media(max-width:520px){ .qhead{flex-direction:column;align-items:flex-start} .grid{grid-template-columns:repeat(auto-fit,minmax(120px,1fr))} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="header">
+    <div>
+      <div class="logo">🎓 Quizzy</div>
+      <div class="subtitle">Playful quizzes — try again whenever you like</div>
+    </div>
+
+    <div class="theme" role="toolbar" aria-label="Theme">
+      <div id="themeLabel" class="small">Theme</div>
+      <button id="themeToggle" aria-pressed="false" title="Toggle theme">🌙</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="panel" class="panel" aria-hidden="false">
+      <strong style="font-weight:700">Choose a topic</strong>
+      <div class="grid" id="grid">
+        <div class="ch" data-ch="Algebra">➗ Algebra</div>
+        <div class="ch" data-ch="Geometry">📐 Geometry</div>
+        <div class="ch" data-ch="Trigonometry">📏 Trigonometry</div>
+        <div class="ch" data-ch="Statistics">📊 Statistics</div>
+        <div class="ch" data-ch="Probability">🎲 Probability</div>
+        <div class="ch" data-ch="Reasoning">🧩 Reasoning</div>
+      </div>
+    </section>
+
+    <section id="quiz" class="quiz-area" aria-hidden="true">
+      <div class="card" role="region" aria-live="polite">
+        <div class="qhead">
+          <div>
+            <div id="cname" class="qtitle">Chapter</div>
+            <div id="hint" class="small">Friendly questions — no pressure</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div id="score" class="score">Score: 0</div>
+            <div id="prog" class="progress">Q 0 / 0</div>
+          </div>
+        </div>
+
+        <div id="qtxt" class="qtxt">Question appears here</div>
+        <div id="opts" class="options" aria-live="polite"></div>
+
+        <div class="row">
+          <button id="back" class="btn ghost">⬅ Back</button>
+          <button id="skip" class="btn ghost">⏭ Skip</button>
+          <button id="next" class="btn primary">Next ➡</button>
+        </div>
+
+        <div id="results" class="results">
+          <h3 id="rtitle">Great job!</h3>
+          <div id="rsummary" class="small">You scored X</div>
+          <div id="rlist" class="break"></div>
+          <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+            <button id="retake" class="btn primary">Retake</button>
+            <button id="other" class="btn ghost">Choose another</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>© 2025 Quizzy</footer>
+</div>
+
+<script>
+/* ---------- QUESTIONS: 5 per topic ---------- */
+const Q = {
+  Algebra:[
+    {q:"Solve: 2x + 4 = 12. x = ?", options:["2","4","6","8"], a:1, sol:"2x=8 ⇒ x=4"},
+    {q:"x/3 = 5 ⇒ x = ?", options:["8","12","15","18"], a:2, sol:"5×3=15"},
+    {q:"If 3x = 9, x = ?", options:["1","2","3","4"], a:2, sol:"3x=9 ⇒ x=3"},
+    {q:"What is 5(x) when x=2?", options:["7","8","9","10"], a:3, sol:"5×2=10"},
+    {q:"Find x: x + 7 = 13", numeric:true, a:6, sol:"13−7=6"}
+  ],
+  Geometry:[
+    {q:"Square side = 3. Area = ?", options:["6","9","12","15"], a:1, sol:"3²=9"},
+    {q:"Perimeter of square side 4 = ?", numeric:true, a:16, sol:"4×4=16"},
+    {q:"Sum of triangle angles = ?", options:["90°","180°","270°","360°"], a:1, sol:"Sum=180°"},
+    {q:"If radius=1, circle diameter = ?", numeric:true, a:2, sol:"diameter=2×radius=2"},
+    {q:"Rectangle 2×5 area = ?", options:["5","7","8","10"], a:3, sol:"2×5=10"}
+  ],
+  Trigonometry:[
+    {q:"sin 30° = ?", options:["0","1/2","1","√3/2"], a:1, sol:"sin30°=1/2"},
+    {q:"cos 0° = ?", numeric:true, a:1, sol:"cos0°=1"},
+    {q:"tan 45° = ?", options:["0","1","√3","undef"], a:1, sol:"tan45°=1"},
+    {q:"sin 90° = ?", options:["0","1/2","1","√3/2"], a:2, sol:"sin90°=1"},
+    {q:"cos 90° = ?", options:["0","1/2","1","−1"], a:0, sol:"cos90°=0"}
+  ],
+  Statistics:[
+    {q:"Mean of [2,4,6] = ?", options:["3","4","5","6"], a:1, sol:"(2+4+6)/3=4"},
+    {q:"Mode of [1,1,2] = ?", options:["1","2","none","both"], a:0, sol:"1 appears most"},
+    {q:"Median of [2,3,9] = ?", numeric:true, a:3, sol:"middle value=3"},
+    {q:"If avg of [3,3,3] = ?", options:["2","3","6","9"], a:1, sol:"average is 3"},
+    {q:"Mean of [1,2,3] = ?", options:["1","2","3","6"], a:1, sol:"(1+2+3)/3=2"}
+  ],
+  Probability:[
+    {q:"Fair coin: chance of heads?", options:["1/4","1/3","1/2","1"], a:2, sol:"1 out of 2"},
+    {q:"Die: chance of 6?", options:["1/2","1/3","1/6","1/5"], a:2, sol:"1 out of 6"},
+    {q:"If 2 of 5 are red, prob(red) = ?", numeric:true, a:0.4, sol:"2/5=0.4"},
+    {q:"Pick card from 4 hearts: chance is 1/?", options:["2","3","4","5"], a:2, sol:"1/4 if 4 hearts out of 16 (depends) — keep simple"},
+    {q:"If bag has 1 red out of 4, prob = ?", options:["1/2","1/3","1/4","1"], a:2, sol:"1 out of 4"}
+  ],
+  Reasoning:[
+    {q:"Continue: 2,4,6, ?", options:["7","8","9","10"], a:1, sol:"+2 pattern →8"},
+    {q:"If all cats are animals, some animals are pets. Are all cats pets?", options:["Yes","No","Sometimes","Can't say"], a:1, sol:"No — some animals are pets, not necessarily cats"},
+    {q:"Find: apple=2 banana=3 → sum = ?", numeric:true, a:5, sol:"2+3=5"},
+    {q:"Which is odd: 2,3,4,6 ?", options:["2","3","4","6"], a:1, sol:"3 is odd"},
+    {q:"If A→B and B→C, A→C? (Yes/No)", options:["Yes","No","Sometimes","Can't say"], a:0, sol:"Yes (transitive)"}
+  ]
+};
+
+/* ---------- state & DOM refs ---------- */
+let chapter=null, idx=0, score=0, resp=[];
+const POINTS = 4;
+const el = id => document.getElementById(id);
+
+const panel = el('panel'), quiz = el('quiz'), grid = el('grid');
+const cname = el('cname'), hint = el('hint'), qtxt = el('qtxt'), opts = el('opts'), prog = el('prog'), scoreEl = el('score');
+const back = el('back'), next = el('next'), skip = el('skip');
+const results = el('results'), rtitle = el('rtitle'), rsummary = el('rsummary'), rlist = el('rlist');
+const retake = el('retake'), other = el('other');
+const themeToggle = el('themeToggle'), themeLabel = el('themeLabel');
+
+function start(ch){
+  chapter=ch; idx=0; score=0; resp = Array(Q[ch].length).fill(null);
+  panel.style.display='none'; quiz.style.display='block'; quiz.setAttribute('aria-hidden','false');
+  cname.textContent=ch; hint.textContent='Friendly questions — no pressure';
+  results.style.display='none'; updateScore(); render();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function render(){
+  const item = Q[chapter][idx];
+  prog.textContent = `Q ${idx+1} / ${Q[chapter].length}`;
+  qtxt.textContent = item.q;
+  opts.innerHTML = '';
+  const previous = resp[idx];
+
+  if (item.numeric){
+    const wrap = document.createElement('div'); wrap.className='num-wrap';
+    const input = document.createElement('input'); input.type='number'; input.step='any';
+    input.value = previous ? (previous.given ?? '') : '';
+    input.disabled = !!previous;
+    input.style.padding='8px'; input.style.borderRadius='8px';
+    const btn = document.createElement('button'); btn.className='btn primary num-submit'; btn.textContent = previous ? (previous.correct ? 'Correct ✓' : 'Answered') : 'Submit';
+    btn.disabled = !!previous;
+    btn.onclick = ()=>{
+      if (resp[idx]) return;
+      const v = input.value.trim(); if (v==='') return alert('Please enter answer or press Skip');
+      const val = Number(v); const correct = Math.abs(val - Number(item.a)) < 1e-6;
+      resp[idx] = {given:val, correct, pts: correct?POINTS:0, sol:item.sol};
+      score += resp[idx].pts; updateScore(); feedbackNumeric(input, btn, correct, item.sol);
+    };
+    wrap.appendChild(input); wrap.appendChild(btn); opts.appendChild(wrap);
+    if (previous) feedbackNumeric(input, wrap.querySelector('button'), previous.correct, item.sol);
+  } else {
+    item.options.forEach((o,i)=>{
+      const d = document.createElement('div'); d.className='opt'; d.dataset.i=i; d.textContent = o;
+      if (previous){ if (i===item.a) d.classList.add('ok'); if (previous.given===i && !previous.correct) d.classList.add('bad'); }
+      opts.appendChild(d);
+    });
+
+    opts.onclick = (e)=>{
+      const t = e.target.closest('.opt'); if(!t || resp[idx]) return;
+      const chosen = Number(t.dataset.i), correct = chosen === item.a;
+      resp[idx] = {given:chosen, correct, pts: correct?POINTS:0, sol:item.sol};
+      score += resp[idx].pts; updateScore();
+      Array.from(opts.children).forEach((c,i)=>{ if (i===item.a) c.classList.add('ok'); });
+      if (!correct) t.classList.add('bad');
+      const s = document.createElement('div'); s.className='small'; s.style.marginTop='8px'; s.textContent='Explanation: '+item.sol;
+      opts.appendChild(s);
+    };
+  }
+
+  back.disabled = idx===0;
+  next.textContent = idx===Q[chapter].length-1 ? 'Finish' : 'Next ➡';
+}
+
+function feedbackNumeric(inp, btn, correct, sol){
+  inp.disabled = true; btn.disabled = true; btn.textContent = correct ? 'Correct ✓' : 'Answered';
+  inp.style.borderColor = correct ? 'rgba(59,214,113,0.9)' : 'rgba(255,92,124,0.9)';
+  const s = document.createElement('div'); s.className='small'; s.style.marginTop='8px'; s.textContent='Explanation: '+sol; opts.appendChild(s);
+}
+
+function updateScore(){ scoreEl.textContent = 'Score: '+score; }
+
+grid.addEventListener('click', (e)=>{ const b = e.target.closest('.ch'); if(!b) return; start(b.dataset.ch); });
+
+next.addEventListener('click', ()=>{
+  const total = Q[chapter].length;
+  if (idx < total - 1){ idx++; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+  else finish();
+});
+back.addEventListener('click', ()=>{ if(idx>0){ idx--; render(); window.scrollTo({top:0,behavior:'smooth'}); }});
+skip.addEventListener('click', ()=>{
+  if (!resp[idx]) resp[idx] = {given:null, correct:false, pts:0, sol:Q[chapter][idx].sol, skipped:true};
+  const total = Q[chapter].length;
+  if (idx < total - 1){ idx++; render(); window.scrollTo({top:0,behavior:'smooth'}); }
+  else finish();
+});
+
+function finish(){
+  results.style.display = 'block';
+  const correctCount = resp.filter(r=>r && r.correct).length;
+  rtitle.textContent = score >= (Q[chapter].length * POINTS * 0.6) ? 'Awesome!' : 'Good try!';
+  rsummary.textContent = `You scored ${score} points — ${correctCount} correct out of ${Q[chapter].length}.`;
+  rlist.innerHTML = '';
+  Q[chapter].forEach((q,i)=>{
+    const r = resp[i] || {given:null, correct:false, pts:0, sol:q.sol};
+    const status = r.correct ? '✅' : (r.skipped ? '⏭' : '❌');
+    const given = (r.given===null || r.given===undefined) ? '-' : r.given;
+    const item = document.createElement('div'); item.className='item';
+    item.innerHTML = `<strong>Q${i+1}.</strong> ${q.q}<div class="small">Your: ${given} · ${status} · ${r.pts} pts<br><em>Explain:</em> ${r.sol}</div>`;
+    rlist.appendChild(item);
+  });
+  results.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+retake.addEventListener('click', ()=> start(chapter));
+other.addEventListener('click', ()=>{ quiz.style.display='none'; panel.style.display='block'; quiz.setAttribute('aria-hidden','true'); chapter=null; idx=0; score=0; resp=[]; });
+
+/* ---------- THEME (fix + persist) ---------- */
+const THEME_KEY = 'quizzy-theme';
+function applyTheme(mode){
+  if(mode === 'dark'){ document.documentElement.setAttribute('data-theme','dark'); themeToggle.textContent='🌞'; themeToggle.setAttribute('aria-pressed','true'); themeLabel.textContent='Dark'; }
+  else { document.documentElement.removeAttribute('data-theme'); themeToggle.textContent='🌙'; themeToggle.setAttribute('aria-pressed','false'); themeLabel.textContent='Light'; }
+  localStorage.setItem(THEME_KEY, mode);
+}
+themeToggle.addEventListener('click', ()=>{
+  const current = localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+});
+(function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY);
+  applyTheme(saved === 'dark' ? 'dark' : 'light');
+})();
+
+/* allow Enter to submit numeric field */
+document.addEventListener('keydown', (e)=>{ if(!chapter) return; if(e.key==='Enter'){ const btn = document.querySelector('.num-submit, .num-submit'); if(btn && !btn.disabled) btn.click(); const numericBtn = document.querySelector('.num-submit'); if(numericBtn && !numericBtn.disabled) numericBtn.click(); } });
+
+</script>
+</body>
+</html>
